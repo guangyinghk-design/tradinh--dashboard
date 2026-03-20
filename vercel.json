@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "builds": [{
+    "src": "我的交易系统看板.html",
+    "use": "@vercel/static"
+  }],
+  "routes": [{
+    "src": "/(.*)",
+    "dest": "/我的交易系统看板.html"
+  }]
+}

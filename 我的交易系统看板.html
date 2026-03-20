@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安衍交易系统 v2.1</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+        * { font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif; box-sizing: border-box; }
+
+        body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); min-height: 100vh; }
+
+        .glass-card {
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .glass-card-light {
+            background: rgba(255,255,255,0.95);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        }
+
+        .nav-item { transition: all 0.3s ease; color: rgba(255,255,255,0.55); font-size:13px; }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
+        .nav-item.active { background: linear-gradient(135deg,#F59E0B,#EF4444); color: white; }
+
+        .section { display: none; }
+        .section.active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+        .gradient-text {
+            background: linear-gradient(135deg,#F59E0B,#EF4444);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+
+        .phase-card { transition: all 0.3s ease; cursor: pointer; }
+        .phase-card:hover { transform: translateY(-4px); }
+
+        .task-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 16px; border-radius: 10px; cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            margin-bottom: 8px; color: rgba(255,255,255,0.85); user-select: none;
+        }
+        .task-item:hover { background: rgba(255,255,255,0.1); }
+        .task-item.completed { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.3); }
+        .task-item.completed .task-text { text-decoration: line-through; color: rgba(255,255,255,0.4); }
+        .task-checkbox {
+            width: 22px; height: 22px; border-radius: 6px;
+            border: 2px solid rgba(255,255,255,0.3);
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s;
+        }
+        .task-item.completed .task-checkbox { background: #10B981; border-color: #10B981; }
+        .task-item.completed .task-checkbox::after { content:'✓'; color:white; font-size:13px; font-weight:bold; }
+
+        .progress-bar-bg { background: rgba(255,255,255,0.1); border-radius:999px; overflow:hidden; }
+        .progress-bar-fill { height:100%; border-radius:999px; transition: width 0.5s ease; }
+
+        .phase-1 { background: linear-gradient(135deg,#3B82F6,#1D4ED8); }
+        .phase-2 { background: linear-gradient(135deg,#8B5CF6,#6D28D9); }
+        .phase-3 { background: linear-gradient(135deg,#10B981,#047857); }
+        .phase-4 { background: linear-gradient(135deg,#F59E0B,#D97706); }
+        .phase-5 { background: linear-gradient(135deg,#EF4444,#B91C1C); }
+        .phase-bar-1 { background: linear-gradient(90deg,#3B82F6,#60A5FA); }
+        .phase-bar-2 { background: linear-gradient(90deg,#8B5CF6,#A78BFA); }
+        .phase-bar-3 { background: linear-gradient(90deg,#10B981,#34D399); }
+        .phase-bar-4 { background: linear-gradient(90deg,#F59E0B,#FCD34D); }
+        .phase-bar-5 { background: linear-gradient(90deg,#EF4444,#F87171); }
+
+        /* 表单 */
+        .log-input {
+            background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px; color: white; padding: 9px 12px; width: 100%; font-size: 13px;
+            outline: none; transition: border 0.2s;
+        }
+        .log-input:focus { border-color: rgba(245,158,11,0.6); }
+        .log-input::placeholder { color: rgba(255,255,255,0.3); }
+        .log-input option { background: #1a1a2e; }
+        label.form-label { display:block; font-size:12px; color:rgba(255,255,255,0.5); margin-bottom:5px; }
+
+        .form-section {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 16px; margin-top: 12px;
+        }
+        .form-section-title { font-size:12px; font-weight:600; color:rgba(255,255,255,0.5); margin-bottom:12px; text-transform:uppercase; letter-spacing:0.05em; }
+
+        .btn-gold {
+            background: linear-gradient(135deg,#F59E0B,#EF4444); color:white; border:none;
+            padding: 11px 24px; border-radius:9px; font-weight:600; cursor:pointer;
+            transition: all 0.3s; font-size:14px;
+        }
+        .btn-gold:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(245,158,11,0.4); }
+        .btn-outline {
+            background:transparent; color:rgba(255,255,255,0.7); border:1px solid rgba(255,255,255,0.2);
+            padding:9px 18px; border-radius:9px; font-weight:500; cursor:pointer; transition:all 0.3s; font-size:13px;
+        }
+        .btn-outline:hover { background:rgba(255,255,255,0.1); color:white; }
+        .btn-danger {
+            background:rgba(239,68,68,0.15); color:#F87171; border:1px solid rgba(239,68,68,0.3);
+            padding:9px 18px; border-radius:9px; cursor:pointer; font-size:13px; transition:all 0.3s;
+        }
+        .btn-danger:hover { background:rgba(239,68,68,0.25); }
+        .btn-green {
+            background: rgba(16,185,129,0.2); color:#34D399; border:1px solid rgba(16,185,129,0.3);
+            padding:9px 18px; border-radius:9px; cursor:pointer; font-size:13px; transition:all 0.3s;
+        }
+        .btn-green:hover { background:rgba(16,185,129,0.3); }
+
+        /* 日志条目 - 颜色标记 */
+        .log-entry {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 14px; margin-bottom: 10px; animation: fadeIn 0.3s ease;
+        }
+        .log-entry:hover { border-color: rgba(255,255,255,0.2); }
+        .log-entry.win { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); }
+        .log-entry.loss { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.3); }
+        .log-entry.mode-outside { background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.4); }
+
+        .tag {
+            display:inline-block; padding:2px 9px; border-radius:999px; font-size:11px; font-weight:600;
+        }
+        .tag-win { background:rgba(239,68,68,0.2); color:#F87171; border:1px solid rgba(239,68,68,0.3); }
+        .tag-loss { background:rgba(16,185,129,0.2); color:#34D399; border:1px solid rgba(16,185,129,0.3); }
+        .tag-even { background:rgba(107,114,128,0.2); color:#9CA3AF; border:1px solid rgba(107,114,128,0.3); }
+        .tag-mode-1 { background:rgba(59,130,246,0.2); color:#60A5FA; border:1px solid rgba(59,130,246,0.3); }
+        .tag-mode-2 { background:rgba(139,92,246,0.2); color:#A78BFA; border:1px solid rgba(139,92,246,0.3); }
+        .tag-mode-3 { background:rgba(245,158,11,0.2); color:#FCD34D; border:1px solid rgba(245,158,11,0.3); }
+        .tag-sub { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.6); border:1px solid rgba(255,255,255,0.15); }
+
+        /* chart容器 */
+        .chart-container { position:relative; }
+
+        /* 条件字段切换 */
+        .conditional-fields { display:none; }
+        .conditional-fields.show { display:block; animation: fadeIn 0.3s ease; }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar { width:5px; }
+        ::-webkit-scrollbar-track { background:rgba(255,255,255,0.03); }
+        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.18); border-radius:3px; }
+
+        /* 移动端 */
+        @media(max-width:640px){
+            .mobile-nav{ position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(15,52,96,0.96);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,0.1); }
+            .main-content{ padding-bottom:80px; }
+        }
+        @media(min-width:641px){ .mobile-nav{display:none;} }
+
+        .ring-container { position:relative; display:inline-flex; align-items:center; justify-content:center; }
+        .ring-text { position:absolute; font-weight:700; font-size:0.7rem; color:white; }
+
+        /* subtype 选择按钮组 */
+        .subtype-btn {
+            flex:1; padding:8px 4px; border-radius:8px; text-align:center;
+            border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.04);
+            color:rgba(255,255,255,0.5); cursor:pointer; font-size:12px; transition:all 0.2s;
+        }
+        .subtype-btn.selected { background:rgba(59,130,246,0.25); border-color:#3B82F6; color:#60A5FA; font-weight:600; }
+
+        .info-row { display:flex; gap:6px; align-items:center; font-size:12px; color:rgba(255,255,255,0.45); }
+        .info-val { color:rgba(255,255,255,0.75); font-weight:500; }
+
+        /* 复盘文字区域 */
+        .review-textarea {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px; color: white; padding: 14px; width: 100%; font-size: 14px;
+            outline: none; transition: border 0.2s; resize: vertical; min-height: 200px; line-height: 1.8;
+        }
+        .review-textarea:focus { border-color: rgba(245,158,11,0.5); }
+        .review-textarea::placeholder { color: rgba(255,255,255,0.3); }
+
+        .review-item {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 16px; margin-bottom: 12px; cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .review-item:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.2);
+        }
+        .review-item.expanded {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(245,158,11,0.4);
+        }
+        .review-content-collapsed {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+<div id="app" class="max-w-6xl mx-auto px-4 py-6 main-content">
+
+    <!-- Header -->
+    <header class="glass-card rounded-2xl p-5 mb-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold gradient-text">安衍交易系统</h1>
+                <p class="text-xs mt-1" style="color:rgba(255,255,255,0.4)">主观交易 · 三模式系统 · 实盘验证 · v2.1</p>
+            </div>
+            <div class="flex items-center gap-5">
+                <div class="text-center">
+                    <p class="text-xs" style="color:rgba(255,255,255,0.35)">系统建设</p>
+                    <p class="text-xl font-bold gradient-text" id="overall-progress-text">0%</p>
+                </div>
+                <div class="ring-container">
+                    <svg width="60" height="60" style="transform:rotate(-90deg)">
+                        <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="5"/>
+                        <circle id="progress-ring" cx="30" cy="30" r="24" fill="none"
+                            stroke="url(#goldGrad)" stroke-width="5" stroke-linecap="round"
+                            stroke-dasharray="151" stroke-dashoffset="151"
+                            style="transition:stroke-dashoffset 0.6s ease"/>
+                        <defs>
+                            <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#F59E0B"/>
+                                <stop offset="100%" stop-color="#EF4444"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span class="ring-text" id="ring-text">0%</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Desktop Nav -->
+    <nav class="hidden md:flex glass-card rounded-2xl p-2 mb-5 gap-1 flex-wrap">
+        <button onclick="showSection('dashboard')" class="nav-item active py-2 px-3 rounded-xl font-medium" data-section="dashboard"><i class="fas fa-chart-pie mr-1"></i>仪表盘</button>
+        <button onclick="showSection('phase1')" class="nav-item py-2 px-3 rounded-xl font-medium" data-section="phase1"><i class="fas fa-database mr-1"></i>数据整理</button>
+        <button onclick="showSection('phase2')" class="nav-item py-2 px-3 rounded-xl font-medium" data-section="phase2"><i class="fas fa-book mr-1"></i>策略提炼</button>
+        <button onclick="showSection('phase3')" class="nav-item py-2 px-3 rounded-xl font-medium" data-section="phase3"><i class="fas fa-journal-whills mr-1"></i>日志系统</button>
+        <button onclick="showSection('phase4')" class="nav-item py-2 px-3 rounded-xl font-medium" data-section="phase4"><i class="fas fa-shield-alt mr-1"></i>执行纪律</button>
+        <button onclick="showSection('phase5')" class="nav-item py-2 px-3 rounded-xl font-medium" data-section="phase5"><i class="fas fa-sync mr-1"></i>系统优化</button>
+        <button onclick="showSection('tradelog')" class="nav-item py-2 px-3 rounded-xl font-medium" data-section="tradelog"><i class="fas fa-pen-nib mr-1"></i>交易日志</button>
+        <button onclick="showSection('review')" class="nav-item py-2 px-3 rounded-xl font-medium" data-section="review"><i class="fas fa-book-open mr-1"></i>每日复盘</button>
+        <button onclick="showSection('charts')" class="nav-item py-2 px-3 rounded-xl font-medium" data-section="charts"><i class="fas fa-chart-line mr-1"></i>数据图表</button>
+        <button onclick="showSection('datapage')" class="nav-item py-2 px-3 rounded-xl font-medium" data-section="datapage"><i class="fas fa-cog mr-1"></i>数据管理</button>
+    </nav>
+
+    <main>
+        <!-- ==================== 仪表盘 ==================== -->
+        <section id="dashboard" class="section active">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-5">
+                <div class="glass-card-light rounded-2xl p-4 phase-card" onclick="showSection('phase1')">
+                    <div class="w-9 h-9 rounded-xl phase-1 flex items-center justify-center mb-2"><i class="fas fa-database text-white text-sm"></i></div>
+                    <p class="font-bold text-gray-800 text-xs mb-1">Phase 1 · 数据整理</p>
+                    <div class="progress-bar-bg" style="background:#e5e7eb;height:6px"><div class="progress-bar-fill phase-bar-1" id="bar-phase1" style="width:0%;height:6px"></div></div>
+                    <p class="text-xs text-gray-400 mt-1 text-right" id="label-phase1">0/4</p>
+                </div>
+                <div class="glass-card-light rounded-2xl p-4 phase-card" onclick="showSection('phase2')">
+                    <div class="w-9 h-9 rounded-xl phase-2 flex items-center justify-center mb-2"><i class="fas fa-book text-white text-sm"></i></div>
+                    <p class="font-bold text-gray-800 text-xs mb-1">Phase 2 · 策略提炼</p>
+                    <div class="progress-bar-bg" style="background:#e5e7eb;height:6px"><div class="progress-bar-fill phase-bar-2" id="bar-phase2" style="width:0%;height:6px"></div></div>
+                    <p class="text-xs text-gray-400 mt-1 text-right" id="label-phase2">0/4</p>
+                </div>
+                <div class="glass-card-light rounded-2xl p-4 phase-card" onclick="showSection('phase3')">
+                    <div class="w-9 h-9 rounded-xl phase-3 flex items-center justify-center mb-2"><i class="fas fa-journal-whills text-white text-sm"></i></div>
+                    <p class="font-bold text-gray-800 text-xs mb-1">Phase 3 · 日志系统</p>
+                    <div class="progress-bar-bg" style="background:#e5e7eb;height:6px"><div class="progress-bar-fill phase-bar-3" id="bar-phase3" style="width:0%;height:6px"></div></div>
+                    <p class="text-xs text-gray-400 mt-1 text-right" id="label-phase3">0/4</p>
+                </div>
+                <div class="glass-card-light rounded-2xl p-4 phase-card" onclick="showSection('phase4')">
+                    <div class="w-9 h-9 rounded-xl phase-4 flex items-center justify-center mb-2"><i class="fas fa-shield-alt text-white text-sm"></i></div>
+                    <p class="font-bold text-gray-800 text-xs mb-1">Phase 4 · 执行纪律</p>
+                    <div class="progress-bar-bg" style="background:#e5e7eb;height:6px"><div class="progress-bar-fill phase-bar-4" id="bar-phase4" style="width:0%;height:6px"></div></div>
+                    <p class="text-xs text-gray-400 mt-1 text-right" id="label-phase4">0/4</p>
+                </div>
+                <div class="glass-card-light rounded-2xl p-4 phase-card" onclick="showSection('phase5')">
+                    <div class="w-9 h-9 rounded-xl phase-5 flex items-center justify-center mb-2"><i class="fas fa-sync text-white text-sm"></i></div>
+                    <p class="font-bold text-gray-800 text-xs mb-1">Phase 5 · 系统优化</p>
+                    <div class="progress-bar-bg" style="background:#e5e7eb;height:6px"><div class="progress-bar-fill phase-bar-5" id="bar-phase5" style="width:0%;height:6px"></div></div>
+                    <p class="text-xs text-gray-400 mt-1 text-right" id="label-phase5">0/4</p>
+                </div>
+            </div>
+
+            <!-- 整体进度 -->
+            <div class="glass-card rounded-2xl p-5 mb-5">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-white font-semibold text-sm">整体建设进度</span>
+                    <span class="gradient-text font-bold" id="overall-progress-text2">0%</span>
+                </div>
+                <div class="progress-bar-bg" style="height:10px">
+                    <div id="bar-overall" class="progress-bar-fill" style="width:0%;height:10px;background:linear-gradient(90deg,#F59E0B,#EF4444)"></div>
+                </div>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="glass-card rounded-2xl p-5">
+                    <h3 class="text-white font-bold mb-4 text-sm"><i class="fas fa-chart-bar mr-2 text-yellow-400"></i>交易统计</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="text-center p-3 rounded-xl" style="background:rgba(255,255,255,0.05)">
+                            <p class="text-2xl font-bold text-white" id="stat-total">0</p>
+                            <p class="text-xs mt-1" style="color:rgba(255,255,255,0.4)">总交易</p>
+                        </div>
+                        <div class="text-center p-3 rounded-xl" style="background:rgba(16,185,129,0.1)">
+                            <p class="text-2xl font-bold" style="color:#34D399" id="stat-win">0</p>
+                            <p class="text-xs mt-1" style="color:rgba(255,255,255,0.4)">盈利</p>
+                        </div>
+                        <div class="text-center p-3 rounded-xl" style="background:rgba(239,68,68,0.1)">
+                            <p class="text-2xl font-bold" style="color:#F87171" id="stat-loss">0</p>
+                            <p class="text-xs mt-1" style="color:rgba(255,255,255,0.4)">亏损</p>
+                        </div>
+                        <div class="text-center p-3 rounded-xl" style="background:rgba(245,158,11,0.1)">
+                            <p class="text-2xl font-bold gradient-text" id="stat-winrate">--</p>
+                            <p class="text-xs mt-1" style="color:rgba(255,255,255,0.4)">胜率</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3" style="border-top:1px solid rgba(255,255,255,0.08)">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span style="color:rgba(255,255,255,0.5)">累计盈亏金额</span>
+                            <span id="stat-total-pnl" class="font-bold" style="color:#34D399">--</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span style="color:rgba(255,255,255,0.5)">平均执行评分</span>
+                            <span id="stat-avg-score" class="font-bold text-yellow-400">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-2xl p-5">
+                    <h3 class="text-white font-bold mb-4 text-sm"><i class="fas fa-layer-group mr-2 text-purple-400"></i>三模式使用</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span style="color:rgba(255,255,255,0.7)">一进二</span>
+                                <span style="color:#60A5FA" id="mode1-count">0次</span>
+                            </div>
+                            <div class="progress-bar-bg" style="height:6px"><div id="mode1-bar" class="progress-bar-fill" style="width:0%;height:6px;background:#3B82F6"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span style="color:rgba(255,255,255,0.7)">龙头反抽</span>
+                                <span style="color:#A78BFA" id="mode2-count">0次</span>
+                            </div>
+                            <div class="progress-bar-bg" style="height:6px"><div id="mode2-bar" class="progress-bar-fill" style="width:0%;height:6px;background:#8B5CF6"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span style="color:rgba(255,255,255,0.7)">热点轮动</span>
+                                <span style="color:#FCD34D" id="mode3-count">0次</span>
+                            </div>
+                            <div class="progress-bar-bg" style="height:6px"><div id="mode3-bar" class="progress-bar-fill" style="width:0%;height:6px;background:#F59E0B"></div></div>
+                        </div>
+                        <div class="pt-2 mt-1" style="border-top:1px solid rgba(255,255,255,0.08)">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span style="color:rgba(255,255,255,0.5)">一进二子类</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 mt-1">
+                                <div class="text-center p-2 rounded-lg" style="background:rgba(255,255,255,0.05)">
+                                    <p class="text-sm font-bold text-white" id="sub-perfect">0</p>
+                                    <p class="text-xs" style="color:rgba(255,255,255,0.35)">完美图形</p>
+                                </div>
+                                <div class="text-center p-2 rounded-lg" style="background:rgba(255,255,255,0.05)">
+                                    <p class="text-sm font-bold text-white" id="sub-qianchou">0</p>
+                                    <p class="text-xs" style="color:rgba(255,255,255,0.35)">抢筹</p>
+                                </div>
+                                <div class="text-center p-2 rounded-lg" style="background:rgba(255,255,255,0.05)">
+                                    <p class="text-sm font-bold text-white" id="sub-yizi">0</p>
+                                    <p class="text-xs" style="color:rgba(255,255,255,0.35)">一字控盘</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-2xl p-5">
+                    <h3 class="text-white font-bold mb-3 text-sm"><i class="fas fa-history mr-2 text-green-400"></i>最近交易</h3>
+                    <div id="recent-logs" style="color:rgba(255,255,255,0.3);font-size:13px;text-align:center;padding-top:16px">
+                        <i class="fas fa-pen-nib text-2xl block mb-2 opacity-30"></i>暂无记录
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== Phase 1-5 (共用模板) ==================== -->
+        <section id="phase1" class="section">
+            <div class="glass-card rounded-2xl p-7">
+                <div class="flex items-center gap-4 mb-5">
+                    <div class="w-12 h-12 rounded-xl phase-1 flex items-center justify-center"><i class="fas fa-database text-white"></i></div>
+                    <div><h2 class="text-xl font-bold text-white">Phase 1：数据整理</h2><p class="text-xs" style="color:rgba(255,255,255,0.4)">把历史数据变成可分析的结构化资产</p></div>
+                    <div class="ml-auto text-right"><p class="gradient-text text-xl font-bold" id="p1-progress-text">0%</p><p class="text-xs" style="color:rgba(255,255,255,0.35)" id="p1-count">0/4</p></div>
+                </div>
+                <div class="progress-bar-bg mb-6" style="height:5px"><div id="p1-bar" class="progress-bar-fill phase-bar-1" style="width:0%;height:5px"></div></div>
+                <div id="tasks-phase1">
+                    <div class="task-item" onclick="toggleTask('phase1','t1')" id="phase1-t1"><div class="task-checkbox"></div><span class="task-text">收集完整交割单数据（7月至今）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase1','t2')" id="phase1-t2"><div class="task-checkbox"></div><span class="task-text">交易数据整理筛选（按模式/盈亏/品种分类）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase1','t3')" id="phase1-t3"><div class="task-checkbox"></div><span class="task-text">整理交易笔记（从手机/纸质搬运，统一存储）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase1','t4')" id="phase1-t4"><div class="task-checkbox"></div><span class="task-text">做一个全新的数据统计表（胜率/盈亏比/月度汇总）</span></div>
+                </div>
+                <div class="mt-5 p-4 rounded-xl" style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2)">
+                    <p style="color:#60A5FA;font-size:13px"><i class="fas fa-lightbulb mr-2"></i><strong>阶段目标：</strong>把半年的实盘数据变成可以分析的资产，知道自己真实的盈亏分布。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="phase2" class="section">
+            <div class="glass-card rounded-2xl p-7">
+                <div class="flex items-center gap-4 mb-5">
+                    <div class="w-12 h-12 rounded-xl phase-2 flex items-center justify-center"><i class="fas fa-book text-white"></i></div>
+                    <div><h2 class="text-xl font-bold text-white">Phase 2：策略提炼</h2><p class="text-xs" style="color:rgba(255,255,255,0.4)">把模糊的直觉变成清晰可执行的规则</p></div>
+                    <div class="ml-auto text-right"><p class="gradient-text text-xl font-bold" id="p2-progress-text">0%</p><p class="text-xs" style="color:rgba(255,255,255,0.35)" id="p2-count">0/4</p></div>
+                </div>
+                <div class="progress-bar-bg mb-6" style="height:5px"><div id="p2-bar" class="progress-bar-fill phase-bar-2" style="width:0%;height:5px"></div></div>
+                <div id="tasks-phase2">
+                    <div class="task-item" onclick="toggleTask('phase2','t1')" id="phase2-t1"><div class="task-checkbox"></div><span class="task-text">一进二规则总结（完美图形/抢筹/一字控盘 入场条件、仓位、止盈止损）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase2','t2')" id="phase2-t2"><div class="task-checkbox"></div><span class="task-text">龙头反抽规则总结（形态识别、建仓档位、止损逻辑）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase2','t3')" id="phase2-t3"><div class="task-checkbox"></div><span class="task-text">热点轮动规则总结（板块识别、轮动时机、买入幅度节奏）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase2','t4')" id="phase2-t4"><div class="task-checkbox"></div><span class="task-text">风控规则（总仓位上限、连续亏损处理、身体状态管理）</span></div>
+                </div>
+                <div class="mt-5 p-4 rounded-xl" style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2)">
+                    <p style="color:#A78BFA;font-size:13px"><i class="fas fa-lightbulb mr-2"></i><strong>阶段目标：</strong>三个模式各有一份清晰的规则文档，任何交易前都能对照执行。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="phase3" class="section">
+            <div class="glass-card rounded-2xl p-7">
+                <div class="flex items-center gap-4 mb-5">
+                    <div class="w-12 h-12 rounded-xl phase-3 flex items-center justify-center"><i class="fas fa-journal-whills text-white"></i></div>
+                    <div><h2 class="text-xl font-bold text-white">Phase 3：交易日志系统</h2><p class="text-xs" style="color:rgba(255,255,255,0.4)">主观交易者的核心资产——记录与复盘</p></div>
+                    <div class="ml-auto text-right"><p class="gradient-text text-xl font-bold" id="p3-progress-text">0%</p><p class="text-xs" style="color:rgba(255,255,255,0.35)" id="p3-count">0/4</p></div>
+                </div>
+                <div class="progress-bar-bg mb-6" style="height:5px"><div id="p3-bar" class="progress-bar-fill phase-bar-3" style="width:0%;height:5px"></div></div>
+                <div id="tasks-phase3">
+                    <div class="task-item" onclick="toggleTask('phase3','t1')" id="phase3-t1"><div class="task-checkbox"></div><span class="task-text">设计交易日志模板（盘前计划/盘中记录/盘后复盘）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase3','t2')" id="phase3-t2"><div class="task-checkbox"></div><span class="task-text">建立每日复盘流程（今天对/错了什么、明天注意什么）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase3','t3')" id="phase3-t3"><div class="task-checkbox"></div><span class="task-text">建立每周复盘流程（胜率、三模式分别表现、情绪曲线）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase3','t4')" id="phase3-t4"><div class="task-checkbox"></div><span class="task-text">建立绩效统计体系（月度盈亏、最大回撤、执行评分）</span></div>
+                </div>
+                <div class="mt-5 p-4 rounded-xl" style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2)">
+                    <p style="color:#34D399;font-size:13px"><i class="fas fa-lightbulb mr-2"></i><strong>阶段目标：</strong>养成每日记录的习惯，数据积累是最宝贵的资产。可直接用「交易日志」+「每日复盘」模块记录。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="phase4" class="section">
+            <div class="glass-card rounded-2xl p-7">
+                <div class="flex items-center gap-4 mb-5">
+                    <div class="w-12 h-12 rounded-xl phase-4 flex items-center justify-center"><i class="fas fa-shield-alt text-white"></i></div>
+                    <div><h2 class="text-xl font-bold text-white">Phase 4：执行纪律</h2><p class="text-xs" style="color:rgba(255,255,255,0.4)">主观交易最贵的不是策略，而是执行力</p></div>
+                    <div class="ml-auto text-right"><p class="gradient-text text-xl font-bold" id="p4-progress-text">0%</p><p class="text-xs" style="color:rgba(255,255,255,0.35)" id="p4-count">0/4</p></div>
+                </div>
+                <div class="progress-bar-bg mb-6" style="height:5px"><div id="p4-bar" class="progress-bar-fill phase-bar-4" style="width:0%;height:5px"></div></div>
+                <div id="tasks-phase4">
+                    <div class="task-item" onclick="toggleTask('phase4','t1')" id="phase4-t1"><div class="task-checkbox"></div><span class="task-text">制定每日交易流程（盘前30分钟→盘中执行→盘后复盘）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase4','t2')" id="phase4-t2"><div class="task-checkbox"></div><span class="task-text">建立三模式入场检查清单（勾选后才能下单）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase4','t3')" id="phase4-t3"><div class="task-checkbox"></div><span class="task-text">设置风控熔断机制（单日亏损/连亏天数/不良状态规则）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase4','t4')" id="phase4-t4"><div class="task-checkbox"></div><span class="task-text">连续执行满30个交易日并评分（纪律评分≥80分合格）</span></div>
+                </div>
+                <div class="mt-5 p-4 rounded-xl" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2)">
+                    <p style="color:#FCD34D;font-size:13px"><i class="fas fa-lightbulb mr-2"></i><strong>阶段目标：</strong>不再因为冲动、情绪、FOMO 偏离系统。执行力=胜率×盈亏比的乘数。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="phase5" class="section">
+            <div class="glass-card rounded-2xl p-7">
+                <div class="flex items-center gap-4 mb-5">
+                    <div class="w-12 h-12 rounded-xl phase-5 flex items-center justify-center"><i class="fas fa-sync text-white"></i></div>
+                    <div><h2 class="text-xl font-bold text-white">Phase 5：系统持续优化</h2><p class="text-xs" style="color:rgba(255,255,255,0.4)">交易系统是活的，市场变化，系统也要进化</p></div>
+                    <div class="ml-auto text-right"><p class="gradient-text text-xl font-bold" id="p5-progress-text">0%</p><p class="text-xs" style="color:rgba(255,255,255,0.35)" id="p5-count">0/4</p></div>
+                </div>
+                <div class="progress-bar-bg mb-6" style="height:5px"><div id="p5-bar" class="progress-bar-fill phase-bar-5" style="width:0%;height:5px"></div></div>
+                <div id="tasks-phase5">
+                    <div class="task-item" onclick="toggleTask('phase5','t1')" id="phase5-t1"><div class="task-checkbox"></div><span class="task-text">建立月度系统回顾机制（哪些规则有效/哪些规则失效）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase5','t2')" id="phase5-t2"><div class="task-checkbox"></div><span class="task-text">建立规则迭代记录（每次修改要有版本号和修改原因）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase5','t3')" id="phase5-t3"><div class="task-checkbox"></div><span class="task-text">根据实盘数据调整三模式参数（止盈止损、建仓节奏）</span></div>
+                    <div class="task-item" onclick="toggleTask('phase5','t4')" id="phase5-t4"><div class="task-checkbox"></div><span class="task-text">完成系统 v1.0 正式版并严格执行</span></div>
+                </div>
+                <div class="mt-5 p-4 rounded-xl" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2)">
+                    <p style="color:#F87171;font-size:13px"><i class="fas fa-lightbulb mr-2"></i><strong>阶段目标：</strong>完成交易系统 v1.0，有规则、有纪律、有数据、有复盘，真正做到知行合一。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 交易日志 ==================== -->
+        <section id="tradelog" class="section">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <!-- 左侧：新增表单 -->
+                <div class="glass-card rounded-2xl p-5">
+                    <h2 class="text-lg font-bold text-white mb-4"><i class="fas fa-pen-nib mr-2 text-yellow-400"></i>新增交易记录</h2>
+
+                    <!-- 基础信息 -->
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div><label class="form-label">交易日期</label><input type="date" id="log-date" class="log-input"></div>
+                        <div><label class="form-label">股票代码/名称</label><input type="text" id="log-stock" class="log-input" placeholder="例如: 000001 平安银行"></div>
+                    </div>
+
+                    <!-- 模式选择 -->
+                    <div class="mb-3">
+                        <label class="form-label">使用模式</label>
+                        <select id="log-mode" class="log-input" onchange="onModeChange()">
+                            <option value="">请选择模式...</option>
+                            <option value="mode1">一进二</option>
+                            <option value="mode2">龙头反抽</option>
+                            <option value="mode3">热点轮动</option>
+                        </select>
+                    </div>
+
+                    <!-- 一进二子类型 -->
+                    <div id="mode1-subtype-section" class="conditional-fields">
+                        <div class="form-section">
+                            <p class="form-section-title"><i class="fas fa-tags mr-1"></i>一进二 · 图形类型</p>
+                            <div style="display:flex;gap:8px">
+                                <div class="subtype-btn" onclick="selectSubtype('perfect')" id="sub-btn-perfect">完美图形</div>
+                                <div class="subtype-btn" onclick="selectSubtype('qianchou')" id="sub-btn-qianchou">抢筹</div>
+                                <div class="subtype-btn" onclick="selectSubtype('yizi')" id="sub-btn-yizi">一字控盘</div>
+                            </div>
+                            <input type="hidden" id="log-subtype" value="">
+                        </div>
+                    </div>
+
+                    <!-- 一进二专属字段 -->
+                    <div id="mode1-fields" class="conditional-fields">
+                        <div class="form-section">
+                            <p class="form-section-title"><i class="fas fa-info-circle mr-1"></i>一进二 · 专属数据</p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="form-label">买入涨幅（%）</label>
+                                    <input type="number" id="log-buy-percent" class="log-input" placeholder="例如: 5.5" step="0.1">
+                                </div>
+                                <div>
+                                    <label class="form-label">板块启动状态</label>
+                                    <select id="log-sector-status" class="log-input">
+                                        <option value="">请选择...</option>
+                                        <option value="not-started">未启动</option>
+                                        <option value="first-day">首日启动</option>
+                                        <option value="second-day">次日</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 热点轮动专属字段 -->
+                    <div id="mode3-fields" class="conditional-fields">
+                        <div class="form-section">
+                            <p class="form-section-title"><i class="fas fa-info-circle mr-1"></i>热点轮动 · 专属数据</p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="form-label">买入幅度（0 到 -10%）</label>
+                                    <input type="number" id="log-buy-range" class="log-input" placeholder="例如: -3.5" step="0.1" min="-10" max="0">
+                                </div>
+                                <div>
+                                    <label class="form-label">板块跌幅（%）</label>
+                                    <input type="number" id="log-sector-drop" class="log-input" placeholder="例如: -5.2" step="0.1">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 盈亏信息 -->
+                    <div class="form-section mt-3">
+                        <p class="form-section-title"><i class="fas fa-dollar-sign mr-1"></i>盈亏信息</p>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="form-label">盈亏结果</label>
+                                <select id="log-result" class="log-input">
+                                    <option value="">请选择...</option>
+                                    <option value="win">盈利</option>
+                                    <option value="loss">亏损</option>
+                                    <option value="even">持平</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">盈亏率（%）</label>
+                                <input type="number" id="log-pnl-rate" class="log-input" placeholder="+3.5 或 -2.1" step="0.01">
+                            </div>
+                            <div>
+                                <label class="form-label">盈亏金额（元）</label>
+                                <input type="number" id="log-pnl-amount" class="log-input" placeholder="+1500 或 -800" step="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 执行评分 + 复盘 -->
+                    <div class="grid grid-cols-2 gap-3 mt-3">
+                        <div>
+                            <label class="form-label">执行评分（0-10，0=模式外）</label>
+                            <input type="number" id="log-score" class="log-input" placeholder="10=完美执行，0=模式外" min="0" max="10">
+                        </div>
+                        <div>
+                            <label class="form-label">持仓时间（天）</label>
+                            <input type="number" id="log-hold-days" class="log-input" placeholder="例如: 3" min="0">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">复盘总结</label>
+                        <textarea id="log-note" class="log-input" rows="2" placeholder="做对了什么？做错了什么？下次注意什么？"></textarea>
+                    </div>
+
+                    <button onclick="saveLog()" class="btn-gold w-full mt-4">
+                        <i class="fas fa-save mr-2"></i>保存记录
+                    </button>
+                </div>
+
+                <!-- 右侧：历史记录 -->
+                <div class="glass-card rounded-2xl p-5 flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-white"><i class="fas fa-list mr-2 text-green-400"></i>历史记录</h2>
+                        <div class="flex gap-2 items-center">
+                            <span class="text-xs" style="color:rgba(255,255,255,0.35)" id="log-count-label">共 0 条</span>
+                            <select id="filter-mode" class="log-input" style="width:auto;padding:5px 8px;font-size:12px" onchange="renderLogList()">
+                                <option value="">全部模式</option>
+                                <option value="mode1">一进二</option>
+                                <option value="mode2">龙头反抽</option>
+                                <option value="mode3">热点轮动</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="log-list" style="flex:1;overflow-y:auto;max-height:560px">
+                        <div style="text-align:center;color:rgba(255,255,255,0.25);padding:40px 0;font-size:13px">
+                            <i class="fas fa-pen-nib text-3xl block mb-2 opacity-20"></i>还没有记录
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 每日复盘 ==================== -->
+        <section id="review" class="section">
+            <div class="glass-card rounded-2xl p-6 max-w-4xl mx-auto">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 rounded-xl phase-3 flex items-center justify-center"><i class="fas fa-book-open text-white"></i></div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">每日复盘记录</h2>
+                        <p class="text-xs" style="color:rgba(255,255,255,0.4)">记录每天的思考和总结，这是交易成长的核心</p>
+                    </div>
+                </div>
+
+                <!-- 新增复盘 -->
+                <div class="form-section mb-6">
+                    <p class="form-section-title"><i class="fas fa-plus mr-1"></i>新增复盘</p>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="form-label">复盘日期</label>
+                            <input type="date" id="review-date" class="log-input">
+                        </div>
+                        <div>
+                            <label class="form-label">情绪评分（1-10，10=最佳状态）</label>
+                            <input type="number" id="review-mood" class="log-input" placeholder="例如: 7" min="1" max="10">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">今日复盘内容</label>
+                        <textarea id="review-content" class="review-textarea" placeholder="今天做对了什么？做错了什么？明天需要注意什么？&#10;&#10;例如：&#10;1. 今天一进二开板后犹豫了，没及时上车，错过涨停&#10;2. 龙头反抽严格按-25%第一笔建仓，心态稳定&#10;3. 明天要注意：不要因为错失而追高，耐心等模式出现"></textarea>
+                    </div>
+                    <button onclick="saveReview()" class="btn-gold">
+                        <i class="fas fa-save mr-2"></i>保存复盘
+                    </button>
+                </div>
+
+                <!-- 复盘历史 -->
+                <div class="mt-6">
+                    <h3 class="text-white font-semibold text-sm mb-4"><i class="fas fa-history mr-2"></i>复盘历史</h3>
+                    <div id="review-list" style="max-height:400px;overflow-y:auto;padding-right:4px">
+                        <div style="text-align:center;color:rgba(255,255,255,0.25);padding:40px 0;font-size:13px">
+                            <i class="fas fa-book-open text-3xl block mb-2 opacity-20"></i>还没有复盘记录
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 数据图表 ==================== -->
+        <section id="charts" class="section">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- 盈亏金额曲线 -->
+                <div class="glass-card rounded-2xl p-5">
+                    <h3 class="text-white font-bold mb-4 text-sm"><i class="fas fa-chart-line mr-2 text-green-400"></i>累计盈亏金额曲线</h3>
+                    <div class="chart-container" style="height:220px"><canvas id="chart-cumulative"></canvas></div>
+                </div>
+                <!-- 盈亏率分布直方图 -->
+                <div class="glass-card rounded-2xl p-5">
+                    <h3 class="text-white font-bold mb-4 text-sm"><i class="fas fa-chart-bar mr-2 text-blue-400"></i>盈亏率分布</h3>
+                    <div class="chart-container" style="height:220px"><canvas id="chart-pnl-rate"></canvas></div>
+                </div>
+                <!-- 三模式胜率对比 -->
+                <div class="glass-card rounded-2xl p-5">
+                    <h3 class="text-white font-bold mb-4 text-sm"><i class="fas fa-trophy mr-2 text-yellow-400"></i>三模式胜率对比</h3>
+                    <div class="chart-container" style="height:220px"><canvas id="chart-mode-winrate"></canvas></div>
+                </div>
+                <!-- 执行评分分布 -->
+                <div class="glass-card rounded-2xl p-5">
+                    <h3 class="text-white font-bold mb-4 text-sm"><i class="fas fa-star mr-2 text-purple-400"></i>执行评分分布</h3>
+                    <div class="chart-container" style="height:220px"><canvas id="chart-score"></canvas></div>
+                </div>
+                <!-- 月度盈亏 -->
+                <div class="glass-card rounded-2xl p-5">
+                    <h3 class="text-white font-bold mb-4 text-sm"><i class="fas fa-calendar-alt mr-2 text-red-400"></i>月度盈亏金额</h3>
+                    <div class="chart-container" style="height:220px"><canvas id="chart-monthly"></canvas></div>
+                </div>
+                <!-- 累计复利收益率曲线 -->
+                <div class="glass-card rounded-2xl p-5">
+                    <h3 class="text-white font-bold mb-4 text-sm"><i class="fas fa-chart-line mr-2 text-indigo-400"></i>累计复利收益率曲线</h3>
+                    <div class="chart-container" style="height:220px"><canvas id="chart-scatter"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 数据管理 ==================== -->
+        <section id="datapage" class="section">
+            <div class="glass-card rounded-2xl p-7 max-w-2xl mx-auto">
+                <h2 class="text-xl font-bold text-white mb-5"><i class="fas fa-cog mr-2 text-yellow-400"></i>数据管理</h2>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                    <div class="rounded-xl p-4 text-center phase-1"><p class="text-xl font-bold text-white" id="dm-tasks">0</p><p class="text-xs text-white opacity-60 mt-1">已完成任务</p></div>
+                    <div class="rounded-xl p-4 text-center phase-2"><p class="text-xl font-bold text-white" id="dm-logs">0</p><p class="text-xs text-white opacity-60 mt-1">交易日志</p></div>
+                    <div class="rounded-xl p-4 text-center phase-3"><p class="text-xl font-bold text-white" id="dm-reviews">0</p><p class="text-xs text-white opacity-60 mt-1">复盘记录</p></div>
+                    <div class="rounded-xl p-4 text-center phase-4"><p class="text-xl font-bold text-white" id="dm-overall">0%</p><p class="text-xs text-white opacity-60 mt-1">系统建设</p></div>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- 导出JSON -->
+                    <div class="p-4 rounded-xl" style="border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04)">
+                        <h3 class="font-semibold text-white mb-1 text-sm"><i class="fas fa-download mr-2 text-blue-400"></i>导出数据备份（JSON）</h3>
+                        <p class="text-xs mb-3" style="color:rgba(255,255,255,0.35)">任务进度 + 交易日志 + 复盘记录，用于跨电脑迁移</p>
+                        <button onclick="exportJSON()" class="btn-outline">导出 JSON 备份</button>
+                    </div>
+
+                    <!-- 导出Excel -->
+                    <div class="p-4 rounded-xl" style="border:1px solid rgba(16,185,129,0.2);background:rgba(16,185,129,0.05)">
+                        <h3 class="font-semibold text-white mb-1 text-sm"><i class="fas fa-file-excel mr-2 text-green-400"></i>导出交易日志为 Excel</h3>
+                        <p class="text-xs mb-3" style="color:rgba(255,255,255,0.35)">将所有交易记录导出为 .xlsx 文件，可在 Excel 中查看和回测分析</p>
+                        <button onclick="exportExcel()" class="btn-green">导出 Excel 文件</button>
+                    </div>
+
+                    <!-- 从Excel导入 -->
+                    <div class="p-4 rounded-xl" style="border:1px solid rgba(245,158,11,0.2);background:rgba(245,158,11,0.05)">
+                        <h3 class="font-semibold text-white mb-1 text-sm"><i class="fas fa-file-upload mr-2 text-yellow-400"></i>从 Excel 导入交易记录</h3>
+                        <p class="text-xs mb-2" style="color:rgba(255,255,255,0.35)">支持导入已填好的 Excel 表格，格式需与导出格式一致</p>
+                        <div class="flex gap-2 flex-wrap">
+                            <button onclick="downloadExcelTemplate()" class="btn-outline" style="font-size:12px;padding:7px 14px"><i class="fas fa-download mr-1"></i>下载模板</button>
+                            <input type="file" id="import-excel-file" accept=".xlsx,.xls,.csv" onchange="importExcel(event)" class="hidden">
+                            <button onclick="document.getElementById('import-excel-file').click()" class="btn-outline" style="font-size:12px;padding:7px 14px"><i class="fas fa-upload mr-1"></i>选择文件导入</button>
+                        </div>
+                    </div>
+
+                    <!-- 导入JSON -->
+                    <div class="p-4 rounded-xl" style="border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04)">
+                        <h3 class="font-semibold text-white mb-1 text-sm"><i class="fas fa-upload mr-2 text-blue-400"></i>从 JSON 恢复备份</h3>
+                        <p class="text-xs mb-3" style="color:rgba(255,255,255,0.35)">从备份文件恢复数据（会覆盖当前数据）</p>
+                        <input type="file" id="import-json-file" accept=".json" onchange="importJSON(event)" class="hidden">
+                        <button onclick="document.getElementById('import-json-file').click()" class="btn-outline">选择 JSON 文件</button>
+                    </div>
+
+                    <!-- 重置 -->
+                    <div class="p-4 rounded-xl" style="border:1px solid rgba(239,68,68,0.2);background:rgba(239,68,68,0.04)">
+                        <h3 class="font-semibold mb-1 text-sm" style="color:#F87171"><i class="fas fa-trash mr-2"></i>重置所有数据</h3>
+                        <p class="text-xs mb-3" style="color:rgba(255,255,255,0.35)">清空所有任务进度、交易日志和复盘记录，此操作不可恢复</p>
+                        <button onclick="resetAll()" class="btn-danger">重置所有数据</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- 移动端底部导航 -->
+<nav class="mobile-nav md:hidden">
+    <div class="grid grid-cols-5 py-1">
+        <button onclick="showSection('dashboard')" class="nav-item py-2 text-center" style="font-size:10px" data-section="dashboard"><i class="fas fa-chart-pie text-base block mb-0.5"></i>总览</button>
+        <button onclick="showSection('tradelog')" class="nav-item py-2 text-center" style="font-size:10px" data-section="tradelog"><i class="fas fa-pen-nib text-base block mb-0.5"></i>日志</button>
+        <button onclick="showSection('review')" class="nav-item py-2 text-center" style="font-size:10px" data-section="review"><i class="fas fa-book-open text-base block mb-0.5"></i>复盘</button>
+        <button onclick="showSection('charts')" class="nav-item py-2 text-center" style="font-size:10px" data-section="charts"><i class="fas fa-chart-line text-base block mb-0.5"></i>图表</button>
+        <button onclick="showSection('datapage')" class="nav-item py-2 text-center" style="font-size:10px" data-section="datapage"><i class="fas fa-cog text-base block mb-0.5"></i>管理</button>
+    </div>
+</nav>
+
+<script>
+// ==================== 数据模型 ====================
+const STORAGE_KEY = 'trading-system-v2.1';
+let appData = { tasks:{}, logs:[], reviews:[] };
+
+const TASK_CONFIG = {
+    phase1:{total:4}, phase2:{total:4}, phase3:{total:4}, phase4:{total:4}, phase5:{total:4}
+};
+
+const SUBTYPE_LABELS = { perfect:'完美图形', qianchou:'抢筹', yizi:'一字控盘' };
+const MODE_LABELS = { mode1:'一进二', mode2:'龙头反抽', mode3:'热点轮动' };
+const RESULT_LABELS = { win:'盈利', loss:'亏损', even:'持平' };
+const SECTOR_STATUS_LABELS = { 'not-started':'未启动', 'first-day':'首日', 'second-day':'次日' };
+
+// ==================== 初始化 ====================
+document.addEventListener('DOMContentLoaded', () => {
+    loadData();
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    document.getElementById('log-date').value = todayStr;
+    document.getElementById('review-date').value = todayStr;
+    updateAllUI();
+});
+
+// ==================== 持久化 ====================
+function loadData(){
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ try{ appData=JSON.parse(raw); }catch(e){} }
+    if(!appData.tasks) appData.tasks={};
+    if(!appData.logs) appData.logs=[];
+    if(!appData.reviews) appData.reviews=[];
+}
+function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
+
+// ==================== 导航 ====================
+function showSection(id){
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(btn=>{
+        btn.classList.remove('active');
+        if(btn.dataset.section===id) btn.classList.add('active');
+    });
+    if(id==='charts'){
+        renderCharts();
+    }
+}
+
+// ==================== 任务 ====================
+function toggleTask(phase, taskId){
+    const key=`${phase}-${taskId}`;
+    appData.tasks[key]=!appData.tasks[key];
+    saveData(); updateAllUI();
+}
+
+// ==================== 全局更新 ====================
+function updateAllUI(){
+    syncTaskUI();
+    updatePhaseProgress();
+    updateOverallProgress();
+    updateDashboardStats();
+    renderLogList();
+    renderReviewList();
+    updateDataManagement();
+}
+
+function syncTaskUI(){
+    for(const key in appData.tasks){
+        const el=document.getElementById(key);
+        if(!el) continue;
+        el.classList.toggle('completed', !!appData.tasks[key]);
+    }
+}
+
+function updatePhaseProgress(){
+    ['phase1','phase2','phase3','phase4','phase5'].forEach((phase,idx)=>{
+        const total=TASK_CONFIG[phase].total;
+        let done=0;
+        for(let i=1;i<=total;i++) if(appData.tasks[`${phase}-t${i}`]) done++;
+        const pct=total>0?Math.round(done/total*100):0;
+        const n=idx+1;
+        const barD=document.getElementById(`bar-phase${n}`);
+        const labelD=document.getElementById(`label-phase${n}`);
+        if(barD) barD.style.width=pct+'%';
+        if(labelD) labelD.textContent=`${done}/${total}`;
+        const pBar=document.getElementById(`p${n}-bar`);
+        const pText=document.getElementById(`p${n}-progress-text`);
+        const pCount=document.getElementById(`p${n}-count`);
+        if(pBar) pBar.style.width=pct+'%';
+        if(pText) pText.textContent=pct+'%';
+        if(pCount) pCount.textContent=`${done}/${total}`;
+    });
+}
+
+function updateOverallProgress(){
+    let totalDone=0, totalAll=0;
+    Object.keys(TASK_CONFIG).forEach(phase=>{
+        totalAll+=TASK_CONFIG[phase].total;
+        for(let i=1;i<=TASK_CONFIG[phase].total;i++) if(appData.tasks[`${phase}-t${i}`]) totalDone++;
+    });
+    const pct=totalAll>0?Math.round(totalDone/totalAll*100):0;
+    const bar=document.getElementById('bar-overall');
+    if(bar) bar.style.width=pct+'%';
+    document.getElementById('overall-progress-text').textContent=pct+'%';
+    document.getElementById('overall-progress-text2') && (document.getElementById('overall-progress-text2').textContent=pct+'%');
+    const circ=151;
+    document.getElementById('progress-ring').style.strokeDashoffset=circ-(pct/100)*circ;
+    document.getElementById('ring-text').textContent=pct+'%';
+}
+
+function updateDashboardStats(){
+    const logs=appData.logs;
+    const total=logs.length;
+    const wins=logs.filter(l=>l.result==='win').length;
+    const losses=logs.filter(l=>l.result==='loss').length;
+    const winrate=total>0?Math.round(wins/total*100)+'%':'--';
+
+    const totalPnlAmount=logs.reduce((sum,l)=>sum+(l.pnlAmount||0),0);
+    const scoreLogs=logs.filter(l=>l.score!=null&&l.score>0);
+    const avgScore=scoreLogs.length>0?(scoreLogs.reduce((s,l)=>s+l.score,0)/scoreLogs.length).toFixed(1):'--';
+
+    document.getElementById('stat-total').textContent=total;
+    document.getElementById('stat-win').textContent=wins;
+    document.getElementById('stat-loss').textContent=losses;
+    document.getElementById('stat-winrate').textContent=winrate;
+    const pnlEl=document.getElementById('stat-total-pnl');
+    if(total>0){
+        pnlEl.textContent=(totalPnlAmount>=0?'+':'')+totalPnlAmount.toFixed(0)+'元';
+        pnlEl.style.color=totalPnlAmount>=0?'#34D399':'#F87171';
+    } else { pnlEl.textContent='--'; }
+    document.getElementById('stat-avg-score').textContent=avgScore!=='--'?avgScore+'/10':'--';
+
+    // 模式统计
+    const m1=logs.filter(l=>l.mode==='mode1').length;
+    const m2=logs.filter(l=>l.mode==='mode2').length;
+    const m3=logs.filter(l=>l.mode==='mode3').length;
+    const mMax=Math.max(m1,m2,m3,1);
+    document.getElementById('mode1-count').textContent=m1+'次';
+    document.getElementById('mode2-count').textContent=m2+'次';
+    document.getElementById('mode3-count').textContent=m3+'次';
+    document.getElementById('mode1-bar').style.width=(m1/mMax*100)+'%';
+    document.getElementById('mode2-bar').style.width=(m2/mMax*100)+'%';
+    document.getElementById('mode3-bar').style.width=(m3/mMax*100)+'%';
+
+    // 子类型
+    const perfect=logs.filter(l=>l.subtype==='perfect').length;
+    const qianchou=logs.filter(l=>l.subtype==='qianchou').length;
+    const yizi=logs.filter(l=>l.subtype==='yizi').length;
+    document.getElementById('sub-perfect').textContent=perfect;
+    document.getElementById('sub-qianchou').textContent=qianchou;
+    document.getElementById('sub-yizi').textContent=yizi;
+
+    // 最近
+    const recentEl=document.getElementById('recent-logs');
+    if(logs.length===0){
+        recentEl.innerHTML='<i class="fas fa-pen-nib text-2xl block mb-2 opacity-20"></i>暂无记录';
+        recentEl.style.cssText='color:rgba(255,255,255,0.3);font-size:13px;text-align:center;padding-top:16px';
+    } else {
+        const recent=[...logs].reverse().slice(0,4);
+        recentEl.style='';
+        recentEl.innerHTML=recent.map(log=>{
+            // 盈亏率颜色：盈利红色，亏损绿色（A股习惯）
+            const rateColor = log.result==='win' ? '#EF4444' : log.result==='loss' ? '#10B981' : '#9CA3AF';
+            return `
+            <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                <span style="color:rgba(255,255,255,0.35);font-size:11px">${log.date}</span>
+                <span style="color:white;font-size:13px;font-weight:600">${log.stock||'--'}</span>
+                <span class="tag ${modeClass(log.mode)}">${MODE_LABELS[log.mode]||'--'}</span>
+                <span class="tag ${resultClass(log.result)}">${RESULT_LABELS[log.result]||'--'}</span>
+                ${log.pnlRate!=null?`<span style="font-size:12px;font-weight:600;color:${rateColor}">${log.pnlRate>0?'+':''}${log.pnlRate}%</span>`:''}
+            </div>`;
+        }).join('');
+    }
+}
+
+function modeClass(m){ return {mode1:'tag-mode-1',mode2:'tag-mode-2',mode3:'tag-mode-3'}[m]||'tag-sub'; }
+function resultClass(r){ return {win:'tag-win',loss:'tag-loss',even:'tag-even'}[r]||'tag-sub'; }
+
+function updateDataManagement(){
+    let totalDone=0,totalAll=0;
+    Object.keys(TASK_CONFIG).forEach(phase=>{
+        totalAll+=TASK_CONFIG[phase].total;
+        for(let i=1;i<=TASK_CONFIG[phase].total;i++) if(appData.tasks[`${phase}-t${i}`]) totalDone++;
+    });
+    const logs=appData.logs;
+    const wins=logs.filter(l=>l.result==='win').length;
+    const winrate=logs.length>0?Math.round(wins/logs.length*100)+'%':'--';
+    const overallPct=totalAll>0?Math.round(totalDone/totalAll*100)+'%':'0%';
+    document.getElementById('dm-tasks').textContent=totalDone;
+    document.getElementById('dm-logs').textContent=logs.length;
+    document.getElementById('dm-reviews').textContent=appData.reviews.length;
+    document.getElementById('dm-winrate').textContent=winrate;
+    document.getElementById('dm-overall').textContent=overallPct;
+}
+
+// ==================== 表单交互 ====================
+function onModeChange(){
+    const mode=document.getElementById('log-mode').value;
+    document.getElementById('mode1-subtype-section').classList.toggle('show', mode==='mode1');
+    document.getElementById('mode1-fields').classList.toggle('show', mode==='mode1');
+    document.getElementById('mode3-fields').classList.toggle('show', mode==='mode3');
+    document.getElementById('log-subtype').value='';
+    document.querySelectorAll('.subtype-btn').forEach(b=>b.classList.remove('selected'));
+}
+
+function selectSubtype(val){
+    document.getElementById('log-subtype').value=val;
+    document.querySelectorAll('.subtype-btn').forEach(b=>b.classList.remove('selected'));
+    document.getElementById(`sub-btn-${val}`).classList.add('selected');
+}
+
+// ==================== 保存日志 ====================
+function saveLog(){
+    const date=document.getElementById('log-date').value;
+    const stock=document.getElementById('log-stock').value.trim();
+    const mode=document.getElementById('log-mode').value;
+    const result=document.getElementById('log-result').value;
+
+    if(!date||!stock||!mode||!result){
+        showToast('⚠️ 请填写：日期、股票、模式、盈亏结果', true); return;
+    }
+
+    const pnlRate=parseFloat(document.getElementById('log-pnl-rate').value);
+    const pnlAmount=parseFloat(document.getElementById('log-pnl-amount').value);
+    const score=parseInt(document.getElementById('log-score').value);
+    const holdDays=parseInt(document.getElementById('log-hold-days').value);
+
+    const entry={
+        id: Date.now().toString(),
+        date, stock, mode, result,
+        subtype: document.getElementById('log-subtype').value || null,
+        pnlRate: isNaN(pnlRate)?null:pnlRate,
+        pnlAmount: isNaN(pnlAmount)?null:pnlAmount,
+        score: isNaN(score)?null:score,
+        holdDays: isNaN(holdDays)?null:holdDays,
+        note: document.getElementById('log-note').value.trim(),
+        // 一进二专属
+        buyPercent: mode==='mode1'?parseFloat(document.getElementById('log-buy-percent').value)||null:null,
+        sectorStatus: mode==='mode1'?document.getElementById('log-sector-status').value||null:null,
+        // 热点轮动专属
+        buyRange: mode==='mode3'?parseFloat(document.getElementById('log-buy-range').value)||null:null,
+        sectorDrop: mode==='mode3'?parseFloat(document.getElementById('log-sector-drop').value)||null:null,
+        createdAt: new Date().toISOString()
+    };
+
+    appData.logs.push(entry);
+    saveData();
+    resetForm();
+    updateAllUI();
+    showToast('记录已保存 ✓');
+}
+
+function resetForm(){
+    ['log-stock','log-pnl-rate','log-pnl-amount','log-score','log-hold-days','log-note',
+     'log-buy-percent','log-buy-range','log-sector-drop'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.value='';
+    });
+    document.getElementById('log-mode').value='';
+    document.getElementById('log-result').value='';
+    document.getElementById('log-sector-status').value='';
+    document.getElementById('log-subtype').value='';
+    document.querySelectorAll('.subtype-btn').forEach(b=>b.classList.remove('selected'));
+    document.getElementById('mode1-subtype-section').classList.remove('show');
+    document.getElementById('mode1-fields').classList.remove('show');
+    document.getElementById('mode3-fields').classList.remove('show');
+    const today=new Date().toISOString().split('T')[0];
+    document.getElementById('log-date').value=today;
+}
+
+// ==================== 渲染日志列表 ====================
+function renderLogList(){
+    const el=document.getElementById('log-list');
+    const filterMode=document.getElementById('filter-mode')?.value||'';
+    const countLabel=document.getElementById('log-count-label');
+
+    let logs=[...appData.logs].reverse();
+    if(filterMode) logs=logs.filter(l=>l.mode===filterMode);
+
+    if(countLabel) countLabel.textContent=`共 ${logs.length} 条`;
+
+    if(logs.length===0){
+        el.innerHTML='<div style="text-align:center;color:rgba(255,255,255,0.25);padding:40px 0;font-size:13px"><i class="fas fa-pen-nib text-3xl block mb-2 opacity-20"></i>还没有记录</div>';
+        return;
+    }
+
+    el.innerHTML=logs.map(log=>{
+        const extras=[];
+        if(log.mode==='mode1'){
+            if(log.subtype) extras.push(`<span class="tag tag-sub">${SUBTYPE_LABELS[log.subtype]||''}</span>`);
+            if(log.buyPercent!=null) extras.push(`<span class="info-row">买入涨幅<span class="info-val">${log.buyPercent}%</span></span>`);
+            if(log.sectorStatus) extras.push(`<span class="info-row">板块<span class="info-val">${SECTOR_STATUS_LABELS[log.sectorStatus]||''}</span></span>`);
+        }
+        if(log.mode==='mode3'){
+            if(log.buyRange!=null) extras.push(`<span class="info-row">买入幅度<span class="info-val">${log.buyRange}%</span></span>`);
+            if(log.sectorDrop!=null) extras.push(`<span class="info-row">板块跌幅<span class="info-val">${log.sectorDrop}%</span></span>`);
+        }
+        // A股红涨绿跌
+        const pnlColor=log.result==='win'?'#F87171':log.result==='loss'?'#34D399':'#9CA3AF';
+        // 颜色标记逻辑
+        let bgClass = '';
+        if(log.score === 0) bgClass = 'mode-outside';
+        else if(log.result === 'win') bgClass = 'win';
+        else if(log.result === 'loss') bgClass = 'loss';
+        
+        return `
+        <div class="log-entry ${bgClass}">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:${log.note||extras.length>0?'8px':'0'}">
+                <span style="color:rgba(255,255,255,0.35);font-size:11px">${log.date}</span>
+                <span style="color:white;font-weight:600;font-size:14px">${log.stock}</span>
+                <span class="tag ${modeClass(log.mode)}">${MODE_LABELS[log.mode]||'--'}</span>
+                <span class="tag ${resultClass(log.result)}">${RESULT_LABELS[log.result]||'--'}</span>
+                ${log.pnlRate!=null?`<span style="font-weight:600;font-size:13px;color:${pnlColor}">${log.pnlRate>0?'+':''}${log.pnlRate}%</span>`:''}
+                ${log.pnlAmount!=null?`<span style="font-size:12px;color:${pnlColor}">(${log.pnlAmount>0?'+':''}${log.pnlAmount}元)</span>`:''}
+                ${log.holdDays!=null?`<span style="font-size:11px;color:rgba(255,255,255,0.35)">${log.holdDays}天</span>`:''}
+                ${log.score!=null?`<span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,0.35)">评分<strong style="color:${log.score===0?'#F59E0B':'#FCD34D'}"> ${log.score===0?'模式外':log.score+'/10'}</strong></span>`:''}
+                <button onclick="deleteLog('${log.id}')" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.2);font-size:12px;padding:2px 6px;margin-left:${log.score==null?'auto':'2px'}" title="删除">✕</button>
+            </div>
+            ${extras.length>0?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:${log.note?'6px':'0'}">${extras.join('')}</div>`:''}
+            ${log.note?`<p style="font-size:12px;color:rgba(255,255,255,0.5);line-height:1.5;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px">${log.note}</p>`:''}
+        </div>`;
+    }).join('');
+}
+
+function deleteLog(id){
+    if(!confirm('确定删除这条记录吗？')) return;
+    appData.logs=appData.logs.filter(l=>l.id!==id);
+    saveData(); updateAllUI();
+}
+
+// ==================== 复盘记录 ====================
+function saveReview(){
+    const date = document.getElementById('review-date').value;
+    const mood = parseInt(document.getElementById('review-mood').value);
+    const content = document.getElementById('review-content').value.trim();
+
+    if(!date){
+        showToast('⚠️ 请选择复盘日期', true); return;
+    }
+    if(!content){
+        showToast('⚠️ 请填写复盘内容', true); return;
+    }
+
+    const entry = {
+        id: Date.now().toString(),
+        date,
+        mood: isNaN(mood)?null:mood,
+        content,
+        createdAt: new Date().toISOString()
+    };
+
+    appData.reviews.push(entry);
+    saveData();
+    document.getElementById('review-content').value = '';
+    document.getElementById('review-mood').value = '';
+    updateAllUI();
+    showToast('复盘已保存 ✓');
+}
+
+function renderReviewList(){
+    const el = document.getElementById('review-list');
+    const reviews = [...appData.reviews].reverse();
+
+    if(reviews.length === 0){
+        el.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.25);padding:40px 0;font-size:13px"><i class="fas fa-book-open text-3xl block mb-2 opacity-20"></i>还没有复盘记录</div>';
+        return;
+    }
+
+    el.innerHTML = reviews.map(r => {
+        const moodColor = r.mood && r.mood >= 7 ? '#34D399' : r.mood && r.mood >= 4 ? '#FCD34D' : '#F87171';
+        const moodText = r.mood ? `<span style="font-size:12px;color:${moodColor};margin-left:6px">情绪 <strong>${r.mood}</strong>/10</span>` : '';
+        return `
+        <div class="review-item" id="review-${r.id}" ondblclick="toggleReviewExpand('${r.id}')">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <span style="color:white;font-weight:600;font-size:14px">${r.date}</span>
+                <div>
+                    ${moodText}
+                    <button onclick="event.stopPropagation();deleteReview('${r.id}')" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.2);font-size:12px;padding:2px 6px;margin-left:8px" title="删除">✕</button>
+                </div>
+            </div>
+            <p class="review-content-collapsed" id="review-content-${r.id}" style="font-size:14px;color:rgba(255,255,255,0.75);line-height:1.7;white-space:pre-wrap">${r.content}</p>
+            <div style="text-align:center;margin-top:8px">
+                <span style="font-size:11px;color:rgba(255,255,255,0.3)">双击展开/收起</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function toggleReviewExpand(id){
+    const item = document.getElementById(`review-${id}`);
+    const content = document.getElementById(`review-content-${id}`);
+    if(!item || !content) return;
+
+    item.classList.toggle('expanded');
+    if(item.classList.contains('expanded')){
+        content.classList.remove('review-content-collapsed');
+    } else {
+        content.classList.add('review-content-collapsed');
+    }
+}
+
+function deleteReview(id){
+    if(!confirm('确定删除这条复盘记录吗？')) return;
+    appData.reviews = appData.reviews.filter(r => r.id !== id);
+    saveData(); updateAllUI();
+}
+
+// ==================== 图表 ====================
+let chartInstances={};
+
+function renderCharts(){
+    const logs=[...appData.logs].sort((a,b)=>a.date.localeCompare(b.date));
+
+    // 1. 累计盈亏金额曲线
+    renderCumulativeChart(logs);
+    // 2. 盈亏率柱状分布
+    renderPnlRateChart(logs);
+    // 3. 三模式胜率对比
+    renderModeWinrateChart(logs);
+    // 4. 执行评分分布
+    renderScoreChart(logs);
+    // 5. 月度盈亏
+    renderMonthlyChart(logs);
+    // 6. 持仓天数 vs 盈亏率散点图
+    renderScatterChart(logs);
+}
+
+const CHART_DEFAULTS = {
+    color: { grid:'rgba(255,255,255,0.07)', tick:'rgba(255,255,255,0.4)' },
+    font: { family:"'Noto Sans SC','Microsoft YaHei',sans-serif", size:11 }
+};
+
+function destroyChart(id){
+    if(chartInstances[id]){ chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function axisStyle(){
+    return {
+        grid:{ color: CHART_DEFAULTS.color.grid },
+        ticks:{ color: CHART_DEFAULTS.color.tick, font:{ size: CHART_DEFAULTS.font.size } }
+    };
+}
+
+function renderCumulativeChart(logs){
+    destroyChart('cumulative');
+    const canvas=document.getElementById('chart-cumulative');
+    if(!canvas) return;
+
+    // 确保 canvas 有正确的尺寸
+    const container = canvas.parentElement;
+    if(container && canvas.width === 0){
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    }
+
+    const withAmount=logs.filter(l=>l.pnlAmount!=null);
+    if(withAmount.length===0){
+        clearCanvas(canvas,'暂无盈亏金额数据'); return;
+    }
+    let cum=0;
+    const labels=[], data=[], colors=[];
+    withAmount.forEach(l=>{
+        cum+=l.pnlAmount;
+        labels.push(l.date.slice(5));
+        data.push(cum);
+        colors.push(cum>=0?'rgba(248,113,113,0.8)':'rgba(52,211,153,0.8)');
+    });
+    chartInstances['cumulative']=new Chart(canvas,{
+        type:'line',
+        data:{
+            labels,
+            datasets:[{
+                label:'累计盈亏',
+                data,
+                borderColor:'rgba(248,113,113,0.9)',
+                backgroundColor:'rgba(248,113,113,0.08)',
+                borderWidth:2,
+                pointBackgroundColor:colors,
+                pointRadius:3,
+                fill:true,
+                tension:0.3
+            }]
+        },
+        options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false}, tooltip:{
+                callbacks:{ label: ctx=>`累计: ${ctx.parsed.y>0?'+':''}${ctx.parsed.y.toFixed(0)}元` }
+            }},
+            scales:{ x:axisStyle(), y:{...axisStyle(), ticks:{...axisStyle().ticks, callback:v=>(v>0?'+':'')+v}} }
+        }
+    });
+}
+
+function renderPnlRateChart(logs){
+    destroyChart('pnlRate');
+    const canvas=document.getElementById('chart-pnl-rate');
+    if(!canvas) return;
+
+    const withRate=logs.filter(l=>l.pnlRate!=null);
+    if(withRate.length===0){ clearCanvas(canvas,'暂无盈亏率数据'); return; }
+
+    // 盈亏率区间分布：(<0%, 0-2.5%, 2.5-5%, 5-7.5%, 7.5-10%, >10%)
+    const buckets=[0,0,0,0,0,0]; // <0, 0-2.5, 2.5-5, 5-7.5, 7.5-10, >10
+    withRate.forEach(l=>{
+        const r=l.pnlRate;
+        if(r<0) buckets[0]++;
+        else if(r<=2.5) buckets[1]++;
+        else if(r<=5) buckets[2]++;
+        else if(r<=7.5) buckets[3]++;
+        else if(r<=10) buckets[4]++;
+        else buckets[5]++;
+    });
+
+    const labels=['<0%','0-2.5%','2.5-5%','5-7.5%','7.5-10%','>10%'];
+    const colors=buckets.map((_,i)=>i===0?'rgba(52,211,153,0.75)':'rgba(248,113,113,0.75)');
+    const border=buckets.map((_,i)=>i===0?'#34D399':'#F87171');
+
+    chartInstances['pnlRate']=new Chart(canvas,{
+        type:'bar',
+        data:{ 
+            labels,
+            datasets:[{
+                label:'交易笔数',
+                data:buckets,
+                backgroundColor:colors,
+                borderColor:border,
+                borderWidth:1,
+                borderRadius:4
+            }]
+        },
+        options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ 
+                legend:{display:false},
+                title:{display:true, text:'盈亏率分布', color:'rgba(255,255,255,0.5)', font:{size:12}}
+            },
+            scales:{
+                x:{ ...axisStyle(), ticks:{ ...axisStyle().ticks, maxRotation:45 } },
+                y:{ ...axisStyle(), ticks:{ ...axisStyle().ticks, callback:v=>v } }
+            }
+        }
+    });
+}
+
+function renderModeWinrateChart(logs){
+    destroyChart('modeWinrate');
+    const canvas=document.getElementById('chart-mode-winrate');
+    if(!canvas) return;
+
+    // 确保 canvas 有正确的尺寸
+    const container = canvas.parentElement;
+    if(container && canvas.width === 0){
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    }
+
+    const modes=['mode1','mode2','mode3'];
+    const modeData=modes.map(m=>{
+        const ml=logs.filter(l=>l.mode===m);
+        const wins=ml.filter(l=>l.result==='win').length;
+        return ml.length>0?Math.round(wins/ml.length*100):0;
+    });
+    const counts=modes.map(m=>logs.filter(l=>l.mode===m).length);
+
+    chartInstances['modeWinrate']=new Chart(canvas,{
+        type:'bar',
+        data:{
+            labels:['一进二','龙头反抽','热点轮动'],
+            datasets:[{
+                label:'胜率(%)',
+                data:modeData,
+                backgroundColor:['rgba(59,130,246,0.7)','rgba(139,92,246,0.7)','rgba(245,158,11,0.7)'],
+                borderColor:['#3B82F6','#8B5CF6','#F59E0B'],
+                borderWidth:1, borderRadius:6
+            }]
+        },
+        options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{
+                legend:{display:false},
+                tooltip:{ callbacks:{ label: (ctx)=>{
+                    const idx=ctx.dataIndex;
+                    return [`胜率: ${ctx.parsed.y}%`, `共 ${counts[idx]} 笔`];
+                }}}
+            },
+            scales:{
+                x:axisStyle(),
+                y:{ ...axisStyle(), min:0, max:100, ticks:{ ...axisStyle().ticks, callback:v=>v+'%' } }
+            }
+        }
+    });
+}
+
+function renderScoreChart(logs){
+    destroyChart('score');
+    const canvas=document.getElementById('chart-score');
+    if(!canvas) return;
+
+    // 确保 canvas 有正确的尺寸
+    const container = canvas.parentElement;
+    if(container && canvas.width === 0){
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    }
+
+    const withScore=logs.filter(l=>l.score!=null);
+    if(withScore.length===0){ clearCanvas(canvas,'暂无评分数据'); return; }
+
+    const dist=Array(11).fill(0); // 0-10
+    withScore.forEach(l=>{ if(l.score>=0&&l.score<=10) dist[l.score]++; });
+
+    chartInstances['score']=new Chart(canvas,{
+        type:'bar',
+        data:{
+            labels:['0(模式外)','1','2','3','4','5','6','7','8','9','10'],
+            datasets:[{
+                label:'笔数',
+                data:dist,
+                backgroundColor:dist.map((_,i)=>i===0?'rgba(245,158,11,0.7)':`rgba(${Math.round(59+i*19)},${Math.round(130+i*8)},246,0.75)`),
+                borderRadius:4
+            }]
+        },
+        options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false} },
+            scales:{ x:{ ...axisStyle(), title:{ display:true, text:'执行评分', color:'rgba(255,255,255,0.4)', font:{size:10} } }, y:axisStyle() }
+        }
+    });
+}
+
+function renderMonthlyChart(logs){
+    destroyChart('monthly');
+    const canvas=document.getElementById('chart-monthly');
+    if(!canvas) return;
+
+    // 确保 canvas 有正确的尺寸
+    const container = canvas.parentElement;
+    if(container && canvas.width === 0){
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    }
+
+    const withAmount=logs.filter(l=>l.pnlAmount!=null);
+    if(withAmount.length===0){ clearCanvas(canvas,'暂无金额数据'); return; }
+
+    const monthly={};
+    withAmount.forEach(l=>{
+        const month=l.date.slice(0,7);
+        if(!monthly[month]) monthly[month]=0;
+        monthly[month]+=l.pnlAmount;
+    });
+    const labels=Object.keys(monthly).sort();
+    const data=labels.map(k=>monthly[k]);
+    const colors=data.map(v=>v>=0?'rgba(248,113,113,0.75)':'rgba(52,211,153,0.75)');
+    const border=data.map(v=>v>=0?'#F87171':'#34D399');
+
+    chartInstances['monthly']=new Chart(canvas,{
+        type:'bar',
+        data:{ labels, datasets:[{ label:'月盈亏', data, backgroundColor:colors, borderColor:border, borderWidth:1, borderRadius:5 }] },
+        options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>`${ctx.parsed.y>0?'+':''}${ctx.parsed.y.toFixed(0)}元` } }},
+            scales:{ x:axisStyle(), y:{ ...axisStyle(), ticks:{ ...axisStyle().ticks, callback:v=>`${v>0?'+':''}${v}` } } }
+        }
+    });
+}
+
+function renderScatterChart(logs){
+    destroyChart('scatter');
+    const canvas=document.getElementById('chart-scatter');
+    if(!canvas) return;
+
+    const withRate=logs.filter(l=>l.pnlRate!=null);
+    if(withRate.length===0){ clearCanvas(canvas,'暂无数据'); return; }
+
+    // 计算累计复利收益率：假设每次投入相同本金，按复利计算
+    let cumulativeReturn = 100; // 初始100%
+    const labels=[];
+    const data=[];
+
+    withRate.forEach((log,index)=>{
+        labels.push(`第${index+1}笔`);
+        cumulativeReturn *= (1 + log.pnlRate/100);
+        data.push(cumulativeReturn);
+    });
+
+    chartInstances['scatter']=new Chart(canvas,{
+        type:'line',
+        data:{
+            labels,
+            datasets:[{
+                label:'累计收益率',
+                data,
+                borderColor:'rgba(245,158,11,0.9)',
+                backgroundColor:'rgba(245,158,11,0.1)',
+                borderWidth:2,
+                pointBackgroundColor:'rgba(245,158,11,0.9)',
+                pointRadius:3,
+                fill:true,
+                tension:0.3
+            }]
+        },
+        options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{
+                legend:{ labels:{ color:'rgba(255,255,255,0.5)', font:{size:10} } },
+                title:{display:true, text:'累计复利收益率曲线', color:'rgba(255,255,255,0.5)', font:{size:12}},
+                tooltip:{ callbacks:{
+                    label:ctx=>`累计收益率: ${ctx.parsed.y.toFixed(2)}%`
+                }}
+            },
+            scales:{
+                x:{ ...axisStyle(), ticks:{ ...axisStyle().ticks, maxRotation:45 } },
+                y:{ ...axisStyle(), ticks:{ ...axisStyle().ticks, callback:v=>v+'%' }, title:{ display:true, text:'收益率', color:'rgba(255,255,255,0.4)', font:{size:10} } }
+            }
+        }
+    });
+}
+
+function clearCanvas(canvas, msg){
+    if(!canvas) return;
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='rgba(255,255,255,0.25)';
+    ctx.textAlign='center';
+    ctx.font=`13px 'Noto Sans SC'`;
+    ctx.fillText(msg, canvas.width/2, canvas.height/2);
+}
+
+// ==================== 数据导入导出 ====================
+
+// 导出JSON
+function exportJSON(){
+    const json=JSON.stringify(appData,null,2);
+    const blob=new Blob([json],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`交易系统备份_${today()}.json`; a.click();
+    URL.revokeObjectURL(url);
+}
+
+// 导入JSON
+function importJSON(event){
+    const file=event.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+        try{
+            const imported=JSON.parse(e.target.result);
+            if(!confirm('导入将覆盖当前所有数据，确定继续？')) return;
+            appData=imported;
+            if(!appData.tasks) appData.tasks={};
+            if(!appData.logs) appData.logs=[];
+            if(!appData.reviews) appData.reviews=[];
+            saveData(); updateAllUI();
+            showToast('导入成功 ✓');
+        } catch(err){ showToast('文件格式错误', true); }
+    };
+    reader.readAsText(file);
+    event.target.value='';
+}
+
+// Excel 列定义
+const EXCEL_COLS = [
+    { key:'date', label:'日期' },
+    { key:'stock', label:'股票代码/名称' },
+    { key:'mode', label:'模式(mode1/mode2/mode3)' },
+    { key:'subtype', label:'一进二子类型(perfect/qianchou/yizi)' },
+    { key:'result', label:'盈亏结果(win/loss/even)' },
+    { key:'pnlRate', label:'盈亏率(%)' },
+    { key:'pnlAmount', label:'盈亏金额(元)' },
+    { key:'score', label:'执行评分(0-10)' },
+    { key:'holdDays', label:'持仓天数' },
+    { key:'buyPercent', label:'[一进二]买入涨幅(%)' },
+    { key:'sectorStatus', label:'[一进二]板块启动(not-started/first-day/second-day)' },
+    { key:'buyRange', label:'[热点轮动]买入幅度(%)' },
+    { key:'sectorDrop', label:'[热点轮动]板块跌幅(%)' },
+    { key:'note', label:'复盘总结' },
+];
+
+// 导出Excel
+function exportExcel(){
+    if(!window.XLSX){ showToast('Excel库加载中，请稍后重试', true); return; }
+    const logs=appData.logs;
+    if(logs.length===0){ showToast('还没有交易记录', true); return; }
+
+    const header=EXCEL_COLS.map(c=>c.label);
+    const rows=logs.map(log=>EXCEL_COLS.map(c=>log[c.key]!=null?log[c.key]:''));
+
+    const ws=XLSX.utils.aoa_to_sheet([header,...rows]);
+
+    // 列宽
+    ws['!cols']=EXCEL_COLS.map((c,i)=>({ wch: Math.max(c.label.length*1.5, 12) }));
+
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'交易日志');
+
+    // 汇总sheet
+    const summaryData=buildSummaryData(logs);
+    const ws2=XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb,ws2,'统计汇总');
+
+    XLSX.writeFile(wb,`交易日志_${today()}.xlsx`);
+    showToast('Excel 已导出 ✓');
+}
+
+function buildSummaryData(logs){
+    const total=logs.length;
+    const wins=logs.filter(l=>l.result==='win').length;
+    const losses=logs.filter(l=>l.result==='loss').length;
+    const winrate=total>0?(wins/total*100).toFixed(1)+'%':'--';
+    const totalPnl=logs.filter(l=>l.pnlAmount!=null).reduce((s,l)=>s+l.pnlAmount,0);
+    const avgScore=logs.filter(l=>l.score!=null&&l.score>0).reduce((s,l,_,a)=>s+l.score/a.length,0).toFixed(1);
+
+    const rows=[
+        ['交易系统统计汇总',''],
+        ['生成日期', today()],
+        ['',''],
+        ['总交易笔数', total],
+        ['盈利笔数', wins],
+        ['亏损笔数', losses],
+        ['胜率', winrate],
+        ['累计盈亏金额(元)', totalPnl.toFixed(0)],
+        ['平均执行评分', avgScore],
+        ['',''],
+        ['--- 三模式明细 ---',''],
+    ];
+    ['mode1','mode2','mode3'].forEach(m=>{
+        const ml=logs.filter(l=>l.mode===m);
+        const mw=ml.filter(l=>l.result==='win').length;
+        const mrate=ml.length>0?(mw/ml.length*100).toFixed(1)+'%':'--';
+        const mPnl=ml.filter(l=>l.pnlAmount!=null).reduce((s,l)=>s+l.pnlAmount,0);
+        rows.push([MODE_LABELS[m], `共${ml.length}笔 | 胜率${mrate} | 盈亏${mPnl>0?'+':''}${mPnl.toFixed(0)}元`]);
+    });
+    return rows;
+}
+
+// 下载Excel模板
+function downloadExcelTemplate(){
+    if(!window.XLSX){ showToast('Excel库加载中，请稍后重试', true); return; }
+    const header=EXCEL_COLS.map(c=>c.label);
+    const example=[
+        '2026-03-20','000001 平安银行','mode1','perfect','win','3.5','1500','8','2','5.5','first-day','','','执行不错，严格按系统来'
+    ];
+    const ws=XLSX.utils.aoa_to_sheet([header,example]);
+    ws['!cols']=EXCEL_COLS.map(c=>({ wch: Math.max(c.label.length*1.5, 14) }));
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'交易日志');
+    XLSX.writeFile(wb,'交易日志导入模板.xlsx');
+    showToast('模板已下载，按格式填写后导入 ✓');
+}
+
+// 从Excel导入
+function importExcel(event){
+    if(!window.XLSX){ showToast('Excel库加载中，请稍后重试', true); return; }
+    const file=event.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+        try{
+            const wb=XLSX.read(e.target.result,{type:'array'});
+            const ws=wb.Sheets[wb.SheetNames[0]];
+            const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+            if(rows.length<2){ showToast('文件中没有数据', true); return; }
+
+            // 解析列头
+            const header=rows[0].map(h=>String(h).trim());
+            const colIndex={};
+            EXCEL_COLS.forEach(c=>{
+                const idx=header.findIndex(h=>h.includes(c.label.split('(')[0].trim()));
+                if(idx>=0) colIndex[c.key]=idx;
+            });
+
+            const imported=[];
+            for(let i=1;i<rows.length;i++){
+                const row=rows[i];
+                if(!row||row.length===0) continue;
+                const get=(key)=>{ const idx=colIndex[key]; return idx!=null?row[idx]:null; };
+                const date=get('date'); const stock=get('stock');
+                if(!date||!stock) continue;
+
+                const entry={
+                    id: Date.now().toString()+i,
+                    date: String(date).trim(),
+                    stock: String(stock).trim(),
+                    mode: String(get('mode')||'').trim(),
+                    subtype: String(get('subtype')||'').trim()||null,
+                    result: String(get('result')||'').trim(),
+                    pnlRate: parseFloat(get('pnlRate'))||null,
+                    pnlAmount: parseFloat(get('pnlAmount'))||null,
+                    score: parseInt(get('score'))||null,
+                    holdDays: parseInt(get('holdDays'))||null,
+                    buyPercent: parseFloat(get('buyPercent'))||null,
+                    sectorStatus: String(get('sectorStatus')||'').trim()||null,
+                    buyRange: parseFloat(get('buyRange'))||null,
+                    sectorDrop: parseFloat(get('sectorDrop'))||null,
+                    note: String(get('note')||'').trim(),
+                    createdAt: new Date().toISOString()
+                };
+                imported.push(entry);
+            }
+
+            if(imported.length===0){ showToast('未能识别任何有效行', true); return; }
+
+            if(!confirm(`即将导入 ${imported.length} 条记录，将追加到现有数据，确定继续？`)) return;
+            appData.logs=[...appData.logs,...imported];
+            saveData(); updateAllUI();
+            showToast(`成功导入 ${imported.length} 条记录 ✓`);
+        } catch(err){ console.error(err); showToast('解析文件时出错：'+err.message, true); }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value='';
+}
+
+// 重置
+function resetAll(){
+    if(!confirm('⚠️ 确定重置所有数据吗？任务进度、交易日志和复盘记录将全部清空！')) return;
+    appData={tasks:{},logs:[],reviews:[]};
+    saveData(); updateAllUI();
+    showToast('已重置所有数据');
+}
+
+// ==================== 工具函数 ====================
+function today(){ return new Date().toISOString().split('T')[0]; }
+
+function showToast(msg, isError=false){
+    let t=document.getElementById('toast');
+    if(!t){
+        t=document.createElement('div'); t.id='toast';
+        t.style.cssText='position:fixed;bottom:28px;left:50%;transform:translateX(-50%);padding:11px 26px;border-radius:999px;font-weight:600;font-size:14px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);opacity:0;transition:opacity 0.3s;pointer-events:none';
+        document.body.appendChild(t);
+    }
+    t.style.background=isError?'linear-gradient(135deg,#EF4444,#B91C1C)':'linear-gradient(135deg,#F59E0B,#EF4444)';
+    t.style.color='white';
+    t.textContent=msg;
+    t.style.opacity='1';
+    clearTimeout(t._timer);
+    t._timer=setTimeout(()=>{ t.style.opacity='0'; },2500);
+}
+</script>
+</body>
+</html>
